@@ -274,6 +274,27 @@ export const useOpcuaStore = defineStore('opcua', () => {
     isConnected.value = false
   }
 
+  // 获取节点的活动报警（未确认）
+  function getNodeActiveAlarms(nodeId: string): AlarmEvent[] {
+    return alarms.value.filter(a => a.nodeId === nodeId && !a.acknowledged)
+  }
+
+  // 获取节点最严重的报警级别
+  function getNodeHighestAlarmSeverity(nodeId: string): AlarmEvent['severity'] | null {
+    const nodeAlarms = getNodeActiveAlarms(nodeId)
+    if (nodeAlarms.length === 0) return null
+    const severityOrder: AlarmEvent['severity'][] = ['Critical', 'High', 'Medium', 'Low', 'Info']
+    for (const severity of severityOrder) {
+      if (nodeAlarms.some(a => a.severity === severity)) return severity
+    }
+    return null
+  }
+
+  // 检查节点是否已订阅
+  function isNodeSubscribed(nodeId: string): boolean {
+    return subscriptions.value.has(nodeId)
+  }
+
   // 计算属性
   const activeAlarmsCount = computed(() => alarms.value.filter(a => !a.acknowledged).length)
   const criticalAlarmsCount = computed(() => alarms.value.filter(a => a.severity === 'Critical' && !a.acknowledged).length)
@@ -298,6 +319,9 @@ export const useOpcuaStore = defineStore('opcua', () => {
     connect,
     disconnect,
     getAllVariableNodes,
+    getNodeActiveAlarms,
+    getNodeHighestAlarmSeverity,
+    isNodeSubscribed,
     // 计算属性
     activeAlarmsCount,
     criticalAlarmsCount
